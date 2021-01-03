@@ -1,0 +1,1 @@
+Example of using Nuke for building Avalonia application with ClickOnce
