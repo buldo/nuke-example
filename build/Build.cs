@@ -38,7 +38,7 @@ class Build : NukeBuild
     AbsolutePath OutputDirectory => RootDirectory / "output";
 
     Target Clean => _ => _
-        .Before(Restore)
+        .Before(Restore, Publish)
         .Executes(() =>
         {
             SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(DeleteDirectory);
@@ -65,4 +65,21 @@ class Build : NukeBuild
                 .EnableNoRestore());
         });
 
+    Target Publish => _ => _
+        .Executes(() =>
+        {
+            var rids = new[] {"win-x64", "linux-x64"}; // Перечисляем RID'ы, для которых собираем приложение
+
+            DotNetPublish(s => s // Теперь вызываем dotnet publish
+                .SetAssemblyVersion(GitVersion.AssemblySemVer)
+                .SetFileVersion(GitVersion.AssemblySemFileVer)
+                .SetInformationalVersion(GitVersion.InformationalVersion)
+                .SetProject(Solution.GetProject("Demo")) // Для dotnet publish желательно указывать проект
+                .SetPublishSingleFile(true) // Собираем в один файл
+                .SetSelfContained(true)     // Вместе с рантаймом
+                .SetConfiguration(Configuration) // Для определённой конфигурации
+                .CombineWith(rids, (s, rid) => s // Но нам нужны разные комбинации параметров
+                    .SetRuntime(rid) // Устанавливаем RID
+                    .SetOutput(OutputDirectory/rid))); // Делаем так, чтобы сборки с разными RID попали в разные папки
+        });
 }
